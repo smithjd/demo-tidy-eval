@@ -1,0 +1,27 @@
+---
+title: "Untitled"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Using mtcars as a default
+
+```{r}
+data(mtcars)
+head(mtcars)
+```
+
+```{r}
+some_vars <- function(df, var_list){
+  {{df}} %>% 
+    select({{var_list}}) %>% 
+  summary()
+}
+
+some_vars(mtcars, c(mpg,cyl))
+```
+
