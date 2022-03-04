@@ -28,4 +28,12 @@ The beauty of the tidyselect framework is that it can be used in other `tidyvers
 
 ### ggplot
 
+Note from https://community.rstudio.com/t/passing-an-input-parameter-to-data/130214/9
+
+```
+scale_fill_manual(values = gender_colours[unique(.data %>% pull({{gender_column}}))])
+```
+
+
+
 ### gt
