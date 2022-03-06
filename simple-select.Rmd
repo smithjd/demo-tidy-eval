@@ -23,5 +23,15 @@ some_vars <- function(df, var_list){
 }
 
 some_vars(mtcars, c(mpg,cyl))
+
+mt_var_list <- c(mpg,cyl)
+
+str(mpg)
+
+try(some_vars(mtcars, mt_var_list))
+
+quoted_mt_var_list <- c("mpg", "cyl")
+
+some_vars(mtcars, quoted_mt_var_list)
 ```
 
