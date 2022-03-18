@@ -1,0 +1,98 @@
+---
+title: "Brief demo of summarize using palmerpenguins data"
+author: "Brittany Barker"
+date: "3/18/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(palmerpenguins)
+library(gt)
+```
+
+## Summarize examples
+
+Usually with summarize, you want to group data first. First let's do some analyses in which we'll group the `palmerpenguins` data by species. There are three species (Adelie, Chinstrap, and Gentoo).
+```{r}
+penguins %>%
+  group_by(species) %>%
+  distinct(species)
+```
+
+Group data by island and calculate the number of species on each island.
+```{r}
+penguins %>%
+  group_by(island) %>%
+  distinct(species, .keep_all = TRUE) %>%
+  summarize(n())
+```
+
+Summarize bill and flipper length measurements (columns contain "mm" string) using the `mean` function. This involves grouping data by species, rounding results, renaming columns, and creating a table of results using the `gt` package. Notice that the `across` function is used to round all numeric columns.
+```{r}
+mean_bill_flip <- penguins %>%
+  group_by(species) %>%
+  summarize(across(ends_with("mm"), mean, na.rm = TRUE)) %>%
+  mutate(across(where(is.numeric), round, 2)) %>%
+  setNames(c("Species", "Bill length (mm)", "Bill depth (mm)", "Flipper length (mm)"))
+
+gt(mean_bill_flip) %>%
+  cols_align(align = "left") %>%
+  tab_header(title = md("**Trait measurements for three penguin species**"),
+             subtitle = "Averages for bill and flipper lengths")
+```
+
+Are there differences in flipper length between species? To answer this question, we summarize flipper length using the `quantile` function, which by default returns data divided into 0% (min), 25% (lower), 50% (median), 75% (upper), and 100% (max) subsets. This involves grouping flipper length data by species, removing missing data, and calculating quantiles. 
+```{r}
+quants_flipper <- penguins %>%
+  group_by(species) %>%
+  na.omit() %>%
+  summarize(flipper = list(quantile(flipper_length_mm))) %>%
+  unnest_wider(flipper) 
+quants_flipper
+```
+
+Next, the results are plotted using `geom_boxplot` in ggplot2.
+```{r}
+ggplot(quants_flipper, aes(x = species)) +
+  geom_boxplot(
+    aes(ymin = `0%`, lower = `25%`, middle = `50%`, upper = `75%`, ymax = `100%`),
+    stat = "identity"
+    ) +
+  xlab("Species") +
+  ylab("Flipper length (mm)")
+```
+
+## Conditional summarize functions
+Here are some examples of how to conditionally summarize data using `summarize_if`, `summarize_at`, and `summarize_all`.    
+
+Here `summarize_if` is used to calculate mean of numeric columns, excluding year.
+```{r}
+penguins %>%
+  select(-year) %>%
+  group_by(species) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
+```
+
+Here `summarize_at` is used to calculate mean of columns only containing the string "mm" (corresponding to bill and flipper lengths)
+```{r}
+penguins %>%
+  group_by(species) %>%
+  summarise_at(vars(contains("mm")), mean, na.rm = TRUE)
+```
+
+Here `summarize_all` is used to summarize data in all columns. However, notice how we get a warning message because we're asking the function to summarize `sex` and `island`, which are factors (the other columns are integer or numeric variables). Also, it doesn't really make sense to calculate the mean year.
+```{r}
+penguins %>%
+  group_by(species) %>%
+  summarise_all(~mean(., na.rm = TRUE))
+```
+
+Thus, we'd either not want to use `summarize_all` in this context, or we could remove the problematic columns before we apply the function. This can be accomplished using the negation operator in the `select` function.
+```{r}
+penguins %>%
+  group_by(species) %>%
+  select(-year, -island, -sex) %>%
+  summarise_all(~mean(., na.rm = TRUE))
+```
