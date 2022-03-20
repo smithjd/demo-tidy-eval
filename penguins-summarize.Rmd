@@ -43,6 +43,17 @@ gt(mean_bill_flip) %>%
              subtitle = "Averages for bill and flipper lengths")
 ```
 
+The `tidyselect` grammar can also be used in some places in the contruction of a `gt` table.  For example, we can just show 1 decimal place for the numeric variables.  Other handy format functions that are `tidyselect`-aware are `fmt_currency`, `fmt_date`, `fmt_time`, `fmt_datetime`, `fmt_percent`, and `fmt_markdown`.
+
+```{r}
+gt(mean_bill_flip) %>%
+  cols_align(align = "left") %>%
+  fmt_number(where(is.numeric), decimals = 1) %>% 
+  tab_header(title = md("**Trait measurements for three penguin species**"),
+             subtitle = "Averages for bill and flipper lengths") 
+```
+
+
 Are there differences in flipper length between species? To answer this question, we summarize flipper length using the `quantile` function, which by default returns data divided into 0% (min), 25% (lower), 50% (median), 75% (upper), and 100% (max) subsets. This involves grouping flipper length data by species, removing missing data, and calculating quantiles. 
 ```{r}
 quants_flipper <- penguins %>%
