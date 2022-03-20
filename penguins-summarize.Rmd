@@ -55,12 +55,25 @@ gt(mean_bill_flip) %>%
 
 
 Are there differences in flipper length between species? To answer this question, we summarize flipper length using the `quantile` function, which by default returns data divided into 0% (min), 25% (lower), 50% (median), 75% (upper), and 100% (max) subsets. This involves grouping flipper length data by species, removing missing data, and calculating quantiles. 
+
 ```{r}
-quants_flipper <- penguins %>%
+quants <- penguins %>%
   group_by(species) %>%
   na.omit() %>%
-  summarize(flipper = list(quantile(flipper_length_mm))) %>%
-  unnest_wider(flipper) 
+  summarize(flipper = list(quantile(flipper_length_mm)))
+```
+
+Show the characteristics of the output:
+
+```{r}
+str(quants)
+quants
+```
+
+```{r}
+quants_flipper <- quants %>%
+  unnest_wider(flipper) # have a look at unnest_longer(flipper), too.
+
 quants_flipper
 ```
 
@@ -74,6 +87,16 @@ ggplot(quants_flipper, aes(x = species)) +
   xlab("Species") +
   ylab("Flipper length (mm)")
 ```
+
+Use `where(is.numeric)` and its negation to format the table:
+
+```{r}
+quants_flipper %>% 
+  gt() %>% 
+  fmt_number(where(is.numeric), decimals = 1) %>% 
+  cols_align(!where(is.numeric), align = "right")
+```
+
 
 ## Conditional summarize functions
 Here are some examples of how to conditionally summarize data using `summarize_if`, `summarize_at`, and `summarize_all`.    
