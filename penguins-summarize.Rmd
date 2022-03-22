@@ -46,9 +46,10 @@ penguins %>%
 ```
 When you have an env-variable that is a character vector, you need to index into the `.data` pronoun with `[[`, like `summarise(penguins, mean(.data[[var]]))`.
 ```{r}
-for (var in names(penguins)){
+var_list <- c("bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g")
+for (var in var_list){
   penguins %>% 
-   select(.data[[var]] ) %>% slice_tail() %>% print()
+    summarise(mean = mean(.data[[var]], na.rm = TRUE)) %>% print()
 }
 ```
 ## Tidy selection
