@@ -1,6 +1,6 @@
 ---
-title: "Brief demo of summarize using palmerpenguins data"
-author: "Brittany Barker"
+title: "Brief demo of tidy evaluation"
+author: "Brittany Barker & John Smith"
 date: "3/18/2022"
 output: html_document
 ---
@@ -12,9 +12,82 @@ library(palmerpenguins)
 library(gt)
 ```
 
-## Summarize examples
+The Tidy evaluation [chapter](https://tidyeval.tidyverse.org/index.html) of the `tidyverse` guide book recommends reading:  
+- The new [Programming with dplyr](https://dplyr.tidyverse.org/articles/programming.html) vignette.  
+- The [Using ggplot2 in packages](https://ggplot2.tidyverse.org/articles/ggplot2-in-packages.html) vignette.  
 
-Usually with summarize, you want to group data first. First let's do some analyses in which we'll group the `palmerpenguins` data by species. There are three species (Adelie, Chinstrap, and Gentoo).
+As described in the dplyr vignette, most dplyr verbs use **tidy evaluation** in some way. The two basic forms of tidy evaluation in dplyr are those that use:  
+- **data masking** so that you can use data variables as they were variables in the environment (i.e. you write `my_variable` not `df$myvariable`). These include `arrange()`, `count()`, `filter()`, `group_by()`, `mutate()`, and `summarise()`.  
+- **tidy selection** so you can easily choose variables based on their position, name, or type (e.g. `starts_with("x")` or `is.numeric`. These include `across()`, `relocate()`, `rename()`, `select()`, and `pull()`.    
+
+In this demo, we'll cover some examples of both forms of tidy evaluation using the `penguins` dataset.  
+
+## Data-variables vs. env-variables 
+
+**Data masking** blurs the line between two different meanings of the word "variable."    
+- **env-variables** are "programming" variables that live in the environment (e.g., the `penguins` data frame).   
+- **data-variables** are "statistical" variables that live in a data frame (e.g., the 8 variables in the `penguins` data frame).  
+
+```{r}
+str(penguins)
+head(penguins)
+```
+
+When you want to get the data-variable from an environmental variable without typing the variable's name, you need to **embrace** the argument surrounding it in double braces. The following function uses embracing to create a wrapper around `summarise` (and other functions). Note that `summarise()` and `summarize()` can be used interchangeably.
+```{r}
+var_min_max <- function(df, var){
+  df %>% 
+    summarize(min = min({{ var }}, na.rm = TRUE), max = max({{ var }}, na.rm = TRUE))
+}
+
+penguins %>%
+  group_by(species) %>%
+  var_min_max(bill_length_mm)
+```
+When you have an env-variable that is a character vector, you need to index into the `.data` pronoun with `[[`, like `summarise(penguins, mean(.data[[var]]))`.
+```{r}
+for (var in names(penguins)){
+  penguins %>% 
+   select(.data[[var]] ) %>% slice_tail() %>% print()
+}
+```
+## Tidy selection
+
+Tidy selection is a complementary tool to data masking that makes it easy to work with the columns of a data frame. Underneath all functions that use tidy selection is the `tidyselect` package. It provides a miniature domain specific language that makes it easy to select columns by name, position, or type. Here are some examples.
+
+Selects the first column (`last_col()` selects the last column).
+```{r}
+head(select(penguins, 1)) 
+```
+
+Select columns by name.
+```{r}
+head(select(penguins, c(species, island, body_mass_g)))
+```
+
+Selects all columns whose name starts with “bill."
+```{r}
+head(select(penguins, starts_with("bill")))
+```
+
+Select all columns whose name ends with "mm."
+```{r}
+head(select(penguins, ends_with("mm")))
+```
+
+Select all numeric columns.
+```{r}
+head(select(penguins, where(is.numeric)))
+```
+
+Use the negation of select to remove columns.
+```{r}
+head(select(penguins, -c(year, sex)))
+```
+
+## Some more summarize examples
+
+Usually with summarize, you want to group data first. First let's do some analyses in which we'll group the `penguins` data by species. There are three species (Adelie, Chinstrap, and Gentoo).
 ```{r}
 penguins %>%
   group_by(species) %>%
@@ -43,7 +116,7 @@ gt(mean_bill_flip) %>%
              subtitle = "Averages for bill and flipper lengths")
 ```
 
-The `tidyselect` grammar can also be used in some places in the contruction of a `gt` table.  For example, we can just show 1 decimal place for the numeric variables.  Other handy format functions that are `tidyselect`-aware are `fmt_currency`, `fmt_date`, `fmt_time`, `fmt_datetime`, `fmt_percent`, and `fmt_markdown`.
+The `tidyselect` grammar can also be used in some places in the construction of a `gt` table.  For example, we can just show 1 decimal place for the numeric variables.  Other handy format functions that are `tidyselect`-aware are `fmt_currency`, `fmt_date`, `fmt_time`, `fmt_datetime`, `fmt_percent`, and `fmt_markdown`.
 
 ```{r}
 gt(mean_bill_flip) %>%
@@ -77,7 +150,7 @@ quants_flipper <- quants %>%
 quants_flipper
 ```
 
-Next, the results are plotted using `geom_boxplot` in ggplot2.
+Next, the results are plotted using `geom_boxplot` in `ggplot2`. The `ggplot2` pacakge has support for tidy evaluation.
 ```{r}
 ggplot(quants_flipper, aes(x = species)) +
   geom_boxplot(
@@ -101,7 +174,7 @@ quants_flipper %>%
 ## Conditional summarize functions
 Here are some examples of how to conditionally summarize data using `summarize_if`, `summarize_at`, and `summarize_all`.    
 
-Here `summarize_if` is used to calculate mean of numeric columns, excluding year.
+Here `summarize_if` is used to calculate mean of numeric columns. We exclude year using `select`.
 ```{r}
 penguins %>%
   select(-year) %>%
@@ -109,7 +182,7 @@ penguins %>%
   summarise_if(is.numeric, mean, na.rm = TRUE)
 ```
 
-Here `summarize_at` is used to calculate mean of columns only containing the string "mm" (corresponding to bill and flipper lengths)
+Here `summarize_at` is used to calculate mean of columns only containing the string "mm" (corresponding to bill and flipper lengths).
 ```{r}
 penguins %>%
   group_by(species) %>%
