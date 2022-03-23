@@ -12,6 +12,8 @@ library(palmerpenguins)
 library(gt)
 ```
 
+Tidy evaluation is a framework for controlling how expressions and variables in your code are evaluated by tidyverse functions, as described in this [R-bloggers blog](https://www.r-bloggers.com/2019/12/practical-tidy-evaluation/#:~:text=Tidy%20evaluation%20is%20a%20framework,more%20efficient%20and%20elegant%20code).
+
 The Tidy evaluation [chapter](https://tidyeval.tidyverse.org/index.html) of the `tidyverse` guide book recommends reading:  
 - The new [Programming with dplyr](https://dplyr.tidyverse.org/articles/programming.html) vignette.  
 - The [Using ggplot2 in packages](https://ggplot2.tidyverse.org/articles/ggplot2-in-packages.html) vignette.  
