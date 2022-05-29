@@ -1,0 +1,162 @@
+---
+title: "Other datasets"
+author: "John D. Smith"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Newsletter subscriptions
+
+```{r  SN participation}
+table <- data.frame(
+  stringsAsFactors = FALSE,
+  subscription.type = c(
+    "new topics", "all emails", "weekly summary",
+    "daily digest", "none"
+  ),
+  Sangha.Talk = c(22, 51, 434, 1620, 8638),
+  Sangha.Announce = c(30, 83, 6611, 1691, 2479)
+)
+x <- as.matrix(c(
+  22, 30,
+  51, 83,
+  434, 6611,
+  1620, 1691,
+  8638, 2479
+))
+
+dim(x) <- c(2, 5)
+medpolish(x)
+mp <- medpolish(x)
+str(mp)
+t(mp$residuals)
+plot(mp)
+```
+
+Religious participation
+
+```{r}
+
+# data from http://religions.pewforum.org/pdf/comparison-Income20Distribution20of20Religious20Traditions.pdf
+# cited in Hadley Wickam's article on Tidy data
+
+(rel.income <- read.table(sep = " ", header = TRUE, text = "
+religion LT10k 10.20k 20.30k 30.40k 40.50k 50.75k 75.100k
+1 Agnostic 27 34 60 81 76 137 122
+2 Atheist 12 27 37 52 35 70 73
+3 Buddhist 27 21 30 34 33 58 62
+4 Catholic 418 617 732 670 638 1116 949
+5 DK_refused 15 14 15 11 10 35 21
+6 Evangelical_Prot 575 869 1064 982 881 1486 949
+7 Hindu 1 9 7 9 11 34 47
+8 Black_Prot 228 244 236 238 197 223 131
+9 Jehovahs_Witness 20 27 24 24 21 30 15
+10 Jewish 19 19 25 25 30 95 69
+"))
+nums <- select(rel.income, -religion)
+med <- medpolish(nums)
+med
+row.names <- med$row
+names(row.names) <- rel.income$religion
+row.names
+
+row.length <- length(med$row)
+col.length <- length(med$col)
+resid_df <- tibble(
+  resids = c(med$residuals),
+  row_fit = rep(med$row, each = col.length),
+  row_names = rep(row.names, each = col.length),
+  col_fit = rep(med$col, times = row.length)
+)
+
+resid_df >
+  ggplot(aes(col_fit, row_fit)) +
+    geom_point() +
+    geom_text(aes(row_fit, col_fit, label = names(row_names)))
+```
+
+
+Pew data from: https://www.pewforum.org/religious-landscape-study/income-distribution/
+
+```{r}
+# income level by religious tradition
+
+religious <- data.frame(
+  stringsAsFactors = FALSE,
+  check.names = FALSE,
+  Religious_tradition = c(
+    "Buddhist", "Catholic",
+    "Evangelical Protestant", "Hindu",
+    "Historically Black Protestant", "Jehovah's Witness", "Jewish",
+    "Mainline Protestant", "Mormon", "Muslim", "Orthodox Christian",
+    "Unaffiliated (religious \"nones\")"
+  ),
+  `Less.than.$30,000` = c(
+    "36", "36", "35",
+    "17", "53", "48", "16", "29", "27", "34", "18",
+    "33"
+  ),
+  `$30,000-$49,999` = c(
+    "18", "19", "22",
+    "13", "22", "25", "15", "20", "20", "17", "17",
+    "20"
+  ),
+  `$50,000-$99,999` = c(
+    "32", "26", "28",
+    "34", "17", "22", "24", "28", "33", "29", "36",
+    "26"
+  ),
+  `$100,000.or.more` = c(
+    "13", "19", "14",
+    "36", "8", "4", "44", "23", "20", "20", "29",
+    "21"
+  ),
+  sample_size = c(
+    233, 6137, 7462, 172,
+    1704, 208, 708, 5208, 594, 205, 155, 6790
+  )
+) %>%
+  select(-sample_size) %>%
+  pivot_longer(
+    cols = c(
+      "Less.than.$30,000",
+      "$30,000-$49,999",
+      "$50,000-$99,999",
+      "$100,000.or.more"
+    ),
+    values_to = "percent"
+  ) %>%
+  mutate(percent = as.numeric(percent))
+```
+
+
+```{r}
+religious %>% ggplot(aes(Religious_tradition, y = name)) +
+  geom_point(aes(size = percent)) +
+  coord_flip()
+```
+
+```{r}
+# Frequency of meditation by household income
+#  of adults who meditate…
+
+data.frame(
+  stringsAsFactors = FALSE,
+  check.names = FALSE,
+  income = c(
+    "Less than $30,000",
+    "$30,000-$49,999", "$50,000-$99,999",
+    "$100,000 or more"
+  ),
+  At.least.once.a.week = c("45", "41", "37", "34"),
+  Once.or.twice.a.month = c("9", "8", "9", "9"),
+  Several.times.a.year = c("4", "4", "4", "5"),
+  `Seldom/never` = c("40", "46", "49", "51"),
+  `Don't.know` = c("2", "1", "1", "1"),
+  Sample.Size = c(8845, 5920, 8723, 7002)
+)
+```
