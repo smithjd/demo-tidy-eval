@@ -5,10 +5,9 @@ date: '2022-03-21'
 output: md_document
 ---
 
-## Libraries 
+## Libraries
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(grid)
 library(ggplotify)
@@ -16,67 +15,80 @@ library(cowplot)
 theme_set(theme_light())
 ```
 
-## A classic dataset from Tukey, 1977
+## First steps of a worked example
+
+p 168 from Mosteller and Tukey, *Data Analysis and Regression, A Second Course in Statistics*, Reading, MA: Addison-Wesley, 1977.
+
+![](mosteller-tukey-1977-p168.jpg)
+
+## Median temperature data
+
+Set up the data in R
+
 ```{r}
+med_temp_tibble <- tibble(
+  month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"),
+  Caribou = c(8.7, 9.8, 21.7, 34.7, 48.5, 58.4, 64.0), 
+  Washington = c(36.2, 37.1, 45.3, 54.4, 64.7, 73.4, 77.3), 
+  Laredo = c(57.6, 61.9, 68.4, 75.9, 81.2, 85.8, 87.7)
+)
 
-leptinotarsa_d <- read.csv(header = TRUE, text = "
-treat, a1, a2, a3, a4, a5, a6
-one, 492, 410, 475, 895, 401, 330
-two, 111, 67, 233, 218, 28, 18
-three, 58, 267, 283, 279, 392, 141
-four, 4, 1, 53, 14, 138, 11")
+med_temp_array <- t(med_temp_tibble[,2:4])
+dimnames(med_temp_array)[[2]] <- t(med_temp_tibble[,1])
 
-long_lept <- pivot_longer(leptinotarsa_d, cols = where(is.numeric), names_to = "area", values_to = "original_count")
+med_temp_longer <- med_temp_tibble %>% 
+  pivot_longer(cols = c("Caribou", "Washington", "Laredo"), 
+               values_to = "temps" , names_to = "place") %>% 
+  mutate(month = factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"), ordered = TRUE))
+
+array_row_names <- med_temp_array[,1]
 ```
 
-## Two graphs to demonstrate techniques described by Wickham (in press):
+## Techniques described by Hadley Wickham
 
-### One
-```{r}
-ggplot(data = long_lept) +
-  geom_count(mapping = aes(x = treat, y = area))
-```
+Hadley Wickham, R for Data Science chapter on Exploratory Data Analysis: <https://r4ds.had.co.nz/exploratory-data-analysis.html> 
 
-### Variant of number one
+### Variant number one
+
 ```{r}
-long_lept %>% ggplot(aes(treat, y = area)) +
-  geom_point(aes(size = (original_count))) +
+med_temp_longer %>% ggplot(aes(month, y = place)) +
+  geom_point(aes(size = temps)) +
   coord_flip()
 ```
 
-### Two
+### Variant number two
 
 ```{r}
-long_lept %>% 
-  ggplot(mapping = aes(x = treat, y = area)) +
-    geom_tile(mapping = aes(fill = original_count))
-```
+med_temp_longer %>% ggplot(aes(month, y = place)) +
+  geom_tile(mapping = aes(fill = temps)) +
+  coord_flip()
 
-## Format the data so that medpolish function can process
-
-```{r}
-lp_row_names <- leptinotarsa_d[,1]
-
-.rowNamesDF(leptinotarsa_d, make.names = FALSE) <- lp_row_names
-
-has_rownames(leptinotarsa_d)
-
-leptinotarsa_d <- leptinotarsa_d %>%
-  select(-1)
 ```
 
 ## Save medpolish output in a list and demonstrate basic additivity plot
 
 ```{r}
-lp <- medpolish(leptinotarsa_d)
+lp <- medpolish(med_temp_array)
 
-plot(lp)
+```
+
+### Standard output
+
+```{r}
+lp
+```
+
+### Additivity plot
+
+``` {plot(lp)}
 ```
 
 ## Augment *medpolish* output to produce an augmented plot
 
+Aiming to reproduce the plot on p 176
+
 ```{r}
-lp_row_tibble <- tibble(area = lp_row_names)
+lp_row_tibble <- tibble(area = array_row_names)
 fit <- as_tibble(lp$overall + outer(lp$row, lp$col, "+"))
 fit <- bind_cols(lp_row_tibble, fit) # add row-names back to the fit df
 
@@ -157,6 +169,10 @@ lp$col_label_tibble <- col_label_tibble
 
 ```{r}
 p <- lp$long_fit_resids %>%
+  mutate(resid_color = case_when(
+    resids < 0 ~ "red",
+    TRUE ~ "blue"
+  )) %>% 
   ggplot(aes(x = col_fit, y = row_fit)) +
   # geom_point() +
   geom_segment(aes(y = row_grid_start, x = col_fit, yend = row_grid_end, xend = col_fit)) +
@@ -165,7 +181,7 @@ p <- lp$long_fit_resids %>%
   geom_segment(aes(
     x = col_fit, y = row_fit,
     xend = col_fit_end, yend = row_fit_end,
-    color = resids
+    color = resid_color
   ),
   arrow = arrow(type = "closed", length = unit(.1, "cm"))
   ) +
@@ -184,15 +200,16 @@ p <- lp$long_fit_resids %>%
     ),
     angle = -45,
     nudge_x = 20
-  )
+  ) +
+  labs(fill = NULL)
 
 p
 ```
 
-## Rotate the fit plot for easier viewing
+## Rotate the fit plot 
+
 ```{r}
 rotation <- 45
-leg <- as.grob(~ plot(get_legend(p + theme_void())))
 p_rot <- p +
   theme(
     legend.position = "none",
@@ -208,6 +225,5 @@ vp <- viewport(
   height = 0
 )
 pushViewport(vp)
-grid.draw(leg)
-```
 
+```

@@ -1,70 +1,91 @@
 ## Libraries
 
-## A classic dataset from Tukey, 1977
+## First steps of a worked example
 
-    leptinotarsa_d <- read.csv(header = TRUE, text = "
-    treat, a1, a2, a3, a4, a5, a6
-    one, 492, 410, 475, 895, 401, 330
-    two, 111, 67, 233, 218, 28, 18
-    three, 58, 267, 283, 279, 392, 141
-    four, 4, 1, 53, 14, 138, 11")
+p 168 from Mosteller and Tukey, *Data Analysis and Regression, A Second
+Course in Statistics*, Reading, MA: Addison-Wesley, 1977.
 
-    long_lept <- pivot_longer(leptinotarsa_d, cols = where(is.numeric), names_to = "area", values_to = "original_count")
+![](mosteller-tukey-1977-p168.jpg)
 
-## Two graphs to demonstrate techniques described by Wickham (in press):
+## Median temperature data
 
-### One
+Set up the data in R
 
-    ggplot(data = long_lept) +
-      geom_count(mapping = aes(x = treat, y = area))
+    med_temp_tibble <- tibble(
+      month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"),
+      Caribou = c(8.7, 9.8, 21.7, 34.7, 48.5, 58.4, 64.0), 
+      Washington = c(36.2, 37.1, 45.3, 54.4, 64.7, 73.4, 77.3), 
+      Laredo = c(57.6, 61.9, 68.4, 75.9, 81.2, 85.8, 87.7)
+    )
+
+    med_temp_array <- t(med_temp_tibble[,2:4])
+    dimnames(med_temp_array)[[2]] <- t(med_temp_tibble[,1])
+
+    med_temp_longer <- med_temp_tibble %>% 
+      pivot_longer(cols = c("Caribou", "Washington", "Laredo"), 
+                   values_to = "temps" , names_to = "place") %>% 
+      mutate(month = factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"), ordered = TRUE))
+
+    array_row_names <- med_temp_array[,1]
+
+## Techniques described by Hadley Wickham
+
+Hadley Wickham, R for Data Science chapter on Exploratory Data Analysis:
+<https://r4ds.had.co.nz/exploratory-data-analysis.html> 
+
+### Variant number one
+
+    med_temp_longer %>% ggplot(aes(month, y = place)) +
+      geom_point(aes(size = temps)) +
+      coord_flip()
 
 ![](medpolish_files/figure-markdown_strict/unnamed-chunk-2-1.png)
 
-### Variant of number one
+### Variant number two
 
-    long_lept %>% ggplot(aes(treat, y = area)) +
-      geom_point(aes(size = (original_count))) +
+    med_temp_longer %>% ggplot(aes(month, y = place)) +
+      geom_tile(mapping = aes(fill = temps)) +
       coord_flip()
 
 ![](medpolish_files/figure-markdown_strict/unnamed-chunk-3-1.png)
 
-### Two
-
-    long_lept %>% 
-      ggplot(mapping = aes(x = treat, y = area)) +
-        geom_tile(mapping = aes(fill = original_count))
-
-![](medpolish_files/figure-markdown_strict/unnamed-chunk-4-1.png)
-
-## Format the data so that medpolish function can process
-
-    lp_row_names <- leptinotarsa_d[,1]
-
-    .rowNamesDF(leptinotarsa_d, make.names = FALSE) <- lp_row_names
-
-    has_rownames(leptinotarsa_d)
-
-    ## [1] TRUE
-
-    leptinotarsa_d <- leptinotarsa_d %>%
-      select(-1)
-
 ## Save medpolish output in a list and demonstrate basic additivity plot
 
-    lp <- medpolish(leptinotarsa_d)
+    lp <- medpolish(med_temp_array)
 
-    ## 1: 1567
-    ## 2: 1450.25
-    ## 3: 1433.125
-    ## Final: 1429
+    ## 1: 64
+    ## Final: 64
 
-    plot(lp)
+### Standard output
 
-![](medpolish_files/figure-markdown_strict/unnamed-chunk-6-1.png)
+    lp
+
+    ## 
+    ## Median Polish Results (Dataset: "med_temp_array")
+    ## 
+    ## Overall: 54.4
+    ## 
+    ## Row Effects:
+    ##    Caribou Washington     Laredo 
+    ##      -19.7        0.0       21.5 
+    ## 
+    ## Column Effects:
+    ##   Jan   Feb   Mar   Apr   May   Jun   Jul 
+    ## -18.3 -17.3  -9.1   0.0  10.3  19.0  22.9 
+    ## 
+    ## Residuals:
+    ##             Jan  Feb  Mar Apr  May  Jun   Jul
+    ## Caribou    -7.7 -7.6 -3.9   0  3.5  4.7   6.4
+    ## Washington  0.1  0.0  0.0   0  0.0  0.0   0.0
+    ## Laredo      0.0  3.3  1.6   0 -5.0 -9.1 -11.1
+
+### Additivity plot
 
 ## Augment *medpolish* output to produce an augmented plot
 
-    lp_row_tibble <- tibble(area = lp_row_names)
+Aiming to reproduce the plot on p 176
+
+    lp_row_tibble <- tibble(area = array_row_names)
     fit <- as_tibble(lp$overall + outer(lp$row, lp$col, "+"))
     fit <- bind_cols(lp_row_tibble, fit) # add row-names back to the fit df
 
@@ -143,6 +164,10 @@
 ## Graph the median polish fit
 
     p <- lp$long_fit_resids %>%
+      mutate(resid_color = case_when(
+        resids < 0 ~ "red",
+        TRUE ~ "blue"
+      )) %>% 
       ggplot(aes(x = col_fit, y = row_fit)) +
       # geom_point() +
       geom_segment(aes(y = row_grid_start, x = col_fit, yend = row_grid_end, xend = col_fit)) +
@@ -151,7 +176,7 @@
       geom_segment(aes(
         x = col_fit, y = row_fit,
         xend = col_fit_end, yend = row_fit_end,
-        color = resids
+        color = resid_color
       ),
       arrow = arrow(type = "closed", length = unit(.1, "cm"))
       ) +
@@ -170,16 +195,16 @@
         ),
         angle = -45,
         nudge_x = 20
-      )
+      ) +
+      labs(fill = NULL)
 
     p
 
-![](medpolish_files/figure-markdown_strict/unnamed-chunk-8-1.png)
+![](medpolish_files/figure-markdown_strict/unnamed-chunk-7-1.png)
 
-## Rotate the fit plot for easier viewing
+## Rotate the fit plot
 
     rotation <- 45
-    leg <- as.grob(~ plot(get_legend(p + theme_void())))
     p_rot <- p +
       theme(
         legend.position = "none",
@@ -202,6 +227,5 @@
       height = 0
     )
     pushViewport(vp)
-    grid.draw(leg)
 
-![](medpolish_files/figure-markdown_strict/unnamed-chunk-9-1.png)
+![](medpolish_files/figure-markdown_strict/unnamed-chunk-8-1.png)

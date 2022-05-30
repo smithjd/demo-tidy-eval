@@ -9,6 +9,22 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+
+## A classic dataset from Tukey, 1977
+```{r}
+
+leptinotarsa_d <- read.csv(header = TRUE, text = "
+treat, a1, a2, a3, a4, a5, a6
+one, 492, 410, 475, 895, 401, 330
+two, 111, 67, 233, 218, 28, 18
+three, 58, 267, 283, 279, 392, 141
+four, 4, 1, 53, 14, 138, 11")
+
+long_lept <- pivot_longer(leptinotarsa_d, cols = where(is.numeric), names_to = "area", values_to = "original_count")
+```
+
+
 Newsletter subscriptions
 
 ```{r  SN participation}
