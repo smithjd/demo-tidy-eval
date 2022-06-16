@@ -1,0 +1,215 @@
+---
+title: "medpolish-survey"
+author: "John D. Smith"
+date: '2022-03-21'
+output: md_document
+---
+
+## Libraries
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(grid)
+library(ggplotify)
+library(cowplot)
+library(mpx)
+theme_set(theme_light())
+```
+
+
+```{r}
+survey_responses <- read_csv(
+"generation,n,response
+1970s,32,Strongly Disagree
+1970s,32,Disagree
+1970s,111,Neutral
+1970s,64,Agree
+1970s,17,Strongly Agree
+1980s,23,Strongly Disagree
+1980s,19,Disagree
+1980s,83,Neutral
+1980s,54,Agree
+1980s,11,Strongly Agree
+1990s,16,Strongly Disagree
+1990s,31,Disagree
+1990s,104,Neutral
+1990s,52,Agree
+1990s,12,Strongly Agree
+2000-2007,18,Strongly Disagree
+2000-2007,20,Disagree
+2000-2007,95,Neutral
+2000-2007,61,Agree
+2000-2007,21,Strongly Agree
+2008-2012,16,Strongly Disagree
+2008-2012,13,Disagree
+2008-2012,90,Neutral
+2008-2012,43,Agree
+2008-2012,10,Strongly Agree
+2013-2017,13,Strongly Disagree
+2013-2017,18,Disagree
+2013-2017,94,Neutral
+2013-2017,44,Agree
+2013-2017,11,Strongly Agree
+Since 2018,1,Strongly Disagree
+Since 2018,4,Disagree
+Since 2018,40,Neutral
+Since 2018,9,Agree
+Since 2018,6,Strongly Agree") %>% 
+  group_by(generation) %>% 
+  mutate(percent = 100 * (n / sum(n))) %>% 
+  ungroup()
+
+```
+
+pivot_wider does the trick...
+
+```{r}
+get_array <- function(df, measure, row_name, col_name) {
+  my_df <- df
+  my_measure <- my_df %>% select({{measure}}) %>% unlist()
+  my_row_name <- my_df %>% select({{row_name}}) %>% unique() %>% unlist()
+  my_col_name <- my_df %>% select({{col_name}}) %>% unique() %>% unlist()
+  my_row_length <- my_row_name %>% unlist() %>% length()
+  my_col_length <- my_col_name %>% unlist() %>% length()
+  my_array <- array(my_measure, c(my_row_length, my_col_length),
+                    dimnames = list(my_row_name, my_col_name))
+}
+x <- get_array(survey_responses, n, generation, response)
+x
+str(x)
+```
+
+var <- rlang::enquo(var)
+data %>%
+}
+1 summarise(mean = mean(!!var))
+
+```{r}
+counts <- array(survey_responses$n, c(7,5), 
+                dimnames =  list(unique(survey_responses$generation), 
+                                 unique(survey_responses$response)))
+
+percents <- array(survey_responses$percent, c(7,5), 
+                dimnames =  list(unique(survey_responses$generation), 
+                                 unique(survey_responses$response)))
+
+```
+
+## Techniques described by Hadley Wickham
+
+Hadley Wickham, R for Data Science chapter on Exploratory Data Analysis: <https://r4ds.had.co.nz/exploratory-data-analysis.html> 
+
+### look at COUNTS
+
+#### Dot size
+
+```{r}
+survey_responses %>% ggplot(aes(generation, y = response)) +
+  geom_point(aes(size = n)) +
+  coord_flip()
+```
+
+#### Heat map
+
+```{r}
+survey_responses %>% ggplot(aes(generation, y = response)) +
+  geom_tile(mapping = aes(fill = n)) +
+  coord_flip()
+
+```
+
+### Look at PERCENTS 
+
+#### Dot Size
+
+```{r}
+survey_responses %>% ggplot(aes(generation, y = response)) +
+  geom_point(aes(size = percent)) +
+  coord_flip()
+```
+
+#### Heatmap
+
+```{r}
+survey_responses %>% ggplot(aes(generation, y = response)) +
+  geom_tile(mapping = aes(fill = percent)) +
+  coord_flip()
+
+```
+
+## Save medpolish output in a list and demonstrate basic additivity plot
+
+### Look at counts
+
+
+## Augment *medpolish* output to produce an augmented plot
+
+Aiming to reproduce the plot on p 176
+
+```{r}
+
+lpc_out <- mp_fit(long_df = survey_responses, 
+                  measure = percent, 
+                  row_name = generation, 
+                  col_name = response)
+```
+### additivity plot
+
+```{r}
+plot(lpc_out)
+```
+
+### Graph the median polish fit
+
+```{r}
+
+percent_plot <- mp_plot(lpc_out)
+percent_plot
+```
+
+### Rotate the fit plot
+
+```{r}
+
+vp <- mp_rotate_plot(percent_plot)
+pushViewport(vp)
+
+```
+
+## Save medpolish output in a list and demonstrate basic additivity plot
+
+### Look at percents
+
+```{r}
+lpp <- medpolish(percents)
+lpp
+plot(lpp)
+```
+
+
+## Augment *medpolish* output to produce an augmented plot
+
+Aiming to reproduce the plot on p 176
+
+```{r}
+
+lpp_out <- mp_fit(lpp)
+```
+
+### Graph the median polish fit
+
+```{r}
+
+
+count_plot <- mp_plot(lpp_out)
+count_plot
+```
+
+### Rotate the fit plot
+
+```{r}
+
+vp <- mp_rotate_plot(count_plot)
+pushViewport(vp)
+
+```
