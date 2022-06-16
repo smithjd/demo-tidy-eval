@@ -8,15 +8,15 @@ output: md_document
 ## Libraries
 
 ```{r setup, include=FALSE}
-source("/Users/jds/Documents/Library/R/mpx/R/mp_fit.R")
-source("/Users/jds/Documents/Library/R/mpx/R/mp_plot.R")
-source("/Users/jds/Documents/Library/R/mpx/R/mp_rotate_plot.R")
+source("https://raw.githubusercontent.com/smithjd/mpx/main/R/mp_fit.R")
+source("https://raw.githubusercontent.com/smithjd/mpx/main/R/mp_plot.R")
+source("https://raw.githubusercontent.com/smithjd/mpx/main/R/mp_rotate_plot.R")
 
 library(tidyverse)
 library(grid)
 library(ggplotify)
 library(cowplot)
-library(mpx)
+# library(mpx)
 theme_set(theme_light())
 ```
 
